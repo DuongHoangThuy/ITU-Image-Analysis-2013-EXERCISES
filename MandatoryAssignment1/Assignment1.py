@@ -7,11 +7,12 @@ from SIGBTools import ROISelector
 from SIGBTools import getImageSequence
 import numpy as np
 import sys
+import math
 
 
 
 
-inputFile = "/Developer/GitRepos/ITU-Image-Analysis-2013-EXERCISES/MandatoryAssignment1/Sequences/eye1.avi"
+inputFile = "Sequences/eye1.avi"
 outputFile = "eyeTrackerResult.mp4"
 
 #--------------------------
@@ -28,9 +29,17 @@ frameNr =0
 def GetPupil(gray,thr):
     tempResultImg = cv2.cvtColor(gray,cv2.COLOR_GRAY2BGR) #used to draw temporary results
 
+#       Blur the image (with a gausian filter, but ideally box filter (all 1s)), then apply histogram equalization to increase the contrast
+#+/-:   threshold works better, but relying on the angle of ellipses decreases
+#       grayBlured=cv2.GaussianBlur(gray, (41,41),0)
+#       grayBlured=cv2.equalizeHist(grayBlured)
+
+#       Do inverted thresholding:
     props = RegionProps()
-    val,binI = cv2.threshold(gray, thr, 255, cv2.THRESH_BINARY_INV)
-    
+    val,binI = cv2.threshold(gray, thr, 255, cv2.THRESH_BINARY_INV)#use grayBlurred?
+
+#       Do morphological operations close, open and dialite(to increase the area size from opening)
+#+/-:   remove noise or small objects, but remaining objects will be rounder and relying on the angle of the ellipses decreases
     #Combining Closing and Opening to the thresholded image
     st7 = cv2.getStructuringElement(cv2.MORPH_CROSS,(7,7))
     st9 = cv2.getStructuringElement(cv2.MORPH_CROSS,(9,9))
@@ -43,27 +52,40 @@ def GetPupil(gray,thr):
     cv2.imshow("ThresholdPupil",binI)
     #Calculate blobs
     sliderVals = getSliderVals() #Getting slider values
+#       Gather the remaining blobs for analysis
     contours, hierarchy = cv2.findContours(binI, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) #Finding contours/candidates for pupil blob
-    pupils = []
-    pupilEllipses = []
+    pupils = []#used to store center of blobs
+    pupilEllipses = []#used to store ellipses
     for cnt in contours:
-        values = props.CalcContourProperties(cnt,['Area','Length','Centroid','Extend','ConvexHull']) #BUG - Add cnt.astype('int') in Windows
-        if values['Area'] < sliderVals['maxSizePupil'] and values['Area'] > sliderVals['minSizePupil'] and values['Extend'] < 0.9:
-            pupils.append(values)
-            centroid = (int(values['Centroid'][0]),int(values['Centroid'][1]))
-            cv2.circle(tempResultImg,centroid, 2, (0,0,255),4)
-            pupilEllipses.append(cv2.fitEllipse(cnt))
+        if len(cnt)>=5:
+
+            values = props.CalcContourProperties(cnt.astype('int'),['Area','Length','Centroid','Perimiter','Extend','ConvexHull']) #BUG - Add cnt.astype('int') in Windows
+#       Calculate circularity to eliminate pupil candidates... unfortunately, the perimeter using a function from SIGBTools seems inaccurate and calculating it might be hard, therefore improvise by using the angle of the ellipse
+#       circularity=values['Perimiter']/(2*math.sqrt(math.pi*values['Area']))
+            #print circularity
+#       Calculate the ellipse the blob best fits in using cv2 tools
+            ellipse=cv2.fitEllipse(cnt.astype('int'))# fitEllipse([center][height,width],[angle])
+            #print ellipse,ellipse[2]
+#       Filter blobs both on area size and angle of the ellipse
+#+/-    we filter ellipses with angle between 80-100 degrees, but this doesn't mean circularity (e.g. a blob in the form of a cat/snake eye has also 90 degrees), but it suffices in our case... even circularity doesn't mean 100% correctness
+            if values['Area'] < sliderVals['maxSizePupil'] and values['Area'] > sliderVals['minSizePupil'] and ellipse[2]>80 and ellipse[2]<100:
+                pupils.append(values)
+                centroid = (int(values['Centroid'][0]),int(values['Centroid'][1]))
+                pupilEllipses.append(ellipse)
     cv2.imshow("TempResults",tempResultImg)
-    return pupilEllipses 
+
+    return pupilEllipses
 
 
 def GetGlints(gray,thr):
     tempResultImg = cv2.cvtColor(gray,cv2.COLOR_GRAY2BGR) #used to draw temporary results
 
     props = RegionProps()
+
+#       Do inverted thresholding:
     val,binI = cv2.threshold(gray, thr, 255, cv2.THRESH_BINARY) #Using non inverted binary image
-    
-    #Combining opening and dialiting seems to be the best but is it ok that other glints are visible two?????!!!!!
+
+#       Do morphological operations open, dilate(to increase the area size from opening)
     st7 = cv2.getStructuringElement(cv2.MORPH_CROSS,(7,7))
     st9 = cv2.getStructuringElement(cv2.MORPH_CROSS,(7,7))
     
@@ -71,21 +93,62 @@ def GetGlints(gray,thr):
     binI = cv2.morphologyEx(binI, cv2.MORPH_DILATE, st9, iterations=2)
     
     cv2.imshow("ThresholdGlints",binI)
-    #Calculate blobs
+
+#       Calculate blobs
     sliderVals = getSliderVals() #Getting slider values
     contours, hierarchy = cv2.findContours(binI, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) #Finding contours/candidates for pupil blob
     glints = []
     glintEllipses = []
     for cnt in contours:
-        values = props.CalcContourProperties(cnt,['Area','Length','Centroid','Extend','ConvexHull']) #BUG - Add cnt.astype('int') in Windows
+        values = props.CalcContourProperties(cnt.astype('int'),['Area','Length','Centroid','Extend','ConvexHull']) #BUG - Add cnt.astype('int') in Windows
+        if len(cnt)>=5:
+#       Calculate the ellipse the blob best fits in using cv2 tools
+            ellipse=cv2.fitEllipse(cnt.astype('int'))# fitEllipse([center][height,width],[angle])
+#       Filter blobs on area size
+#+/-:   we haven't found the actual glints, but we get a very good list of candidates
         if values['Area'] < sliderVals['maxSizeGlints'] and values['Area'] > sliderVals['minSizeGlints']:
             glints.append(values)
             centroid = (int(values['Centroid'][0]),int(values['Centroid'][1]))
-            cv2.circle(tempResultImg,centroid, 2, (0,0,255),4)
-            glintEllipses.append(cv2.fitEllipse(cnt))
+            #cv2.circle(tempResultImg,centroid, 2, (0,0,255),4)
+            glintEllipses.append(cv2.fitEllipse(cnt.astype('int')))
     cv2.imshow("TempResults",tempResultImg)
     return glintEllipses
 
+def FilterPupilGlint(pupils,glints):
+    ''' Given a list of pupil candidates and glint candidates returns a list of pupil and glints'''
+#       Filter glints based on fixed distance between them - impossible in a single frame... need a previous frame, but this is not build for that... it is much harder (time consuming for computation) than simply finding the 2 glints that are closest to the pupil
+#       Assume that we have found the pupil correctly, we'll find the 2 glints closest to it
+#+/-:   for each correct pupil, we are most likely to find the 2 best glint pair candidates (assuming they are among the group of candidates), but it is highly dependent on the pupil/s
+    filteredGlints=[]
+    #looping through pupilEllipses! / glintEllipses!
+    for pupil in range(len(pupils)):
+        #finding the 2 min distant glints with 1 loop (need 2 minimums-g1,g2 with values about the current glintEllipse and its distance to the pupil)
+        g1,g2=[-1,10**6],[-1,10**6]#[index,min_distance]
+        for glint in range(len(glints)):
+            if g1[0]==-1:
+                g1=[glints[glint],getDistance(pupils[pupil][0],glints[glint][0])]
+            elif g2[0]==-1:
+                g2=[glints[glint],getDistance(pupils[pupil][0],glints[glint][0])]
+            else:
+                min=getDistance(pupils[pupil][0],glints[glint][0])
+                higher=max(g1[1],g2[1])
+                higher_index=1 if higher==g1[1] else 2
+                if min<higher:
+                    if higher_index==1:
+                        g1[0]=glints[glint]
+                        g1[1]=min
+                    else:
+                        g2[0]=glints[glint]
+                        g2[1]=min
+        if g1[0]!=-1:
+            filteredGlints.append(g1[0])
+        if g2[0]!=-1:
+            filteredGlints.append(g2[0])
+    return pupils,filteredGlints
+
+def getDistance(pair1,pair2):
+    distance=math.sqrt(math.pow(pair1[0]-pair2[0],2)+math.pow(pair1[1]-pair2[1],2))
+    return distance
 
 def GetIrisUsingThreshold(gray,pupil):
     ''' Given a gray level image, gray and threshold
@@ -135,10 +198,6 @@ def GetIrisUsingSimplifyedHough(gray,pupil):
 def GetEyeCorners(leftTemplate, rightTemplate,pupilPosition=None):
     pass
 
-def FilterPupilGlint(pupils,glints):
-    ''' Given a list of pupil candidates and glint candidates returns a list of pupil and glints'''
-    pass
-
 def update(I):
     '''Calculate the image features and display the result based on the slider values'''
     #global drawImg
@@ -149,7 +208,7 @@ def update(I):
     # Do the magic
     pupils = GetPupil(gray,sliderVals['pupilThr'])
     glints = GetGlints(gray,sliderVals['glintThr'])
-    FilterPupilGlint(pupils,glints)
+    pupils,glints=FilterPupilGlint(pupils,glints)
 
     #Do template matching
     global leftTemplate
@@ -233,7 +292,8 @@ def run(fileName,resultFile='eyeTrackingResults.avi'):
                 print "End recording"
             else:
                 imSize = np.shape(imgOrig)
-                videoWriter = cv2.VideoWriter(resultFile, cv.CV_FOURCC('D','I','V','3'), 15.0,(imSize[1],imSize[0]),True) #Make a video writer
+                videoWriter = cv2.VideoWriter(resultFile, cv.CV_FOURCC('D','I','V','X'), 15.0,(imSize[1],imSize[0]),True) #Make a video writer
+                videoWriter.write(drawImg)
                 saveFrames = True
                 print "Recording..."
 

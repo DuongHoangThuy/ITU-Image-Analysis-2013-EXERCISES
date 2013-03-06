@@ -1,3 +1,4 @@
+import cv2;
 import cv2
 import numpy as np
 import pylab
@@ -9,13 +10,14 @@ Written and Assembled  (2012,2013) by  Dan Witzner Hansen, IT University.
 '''
 
 def getCircleSamples(center=(0,0),radius=1,nPoints=30):
-    ''' Samples a circle with center center = (x,y) , radius =1 and in nPoints on the cirlce
-    '''
+    ''' Samples a circle with center center = (x,y) , radius =1 and in nPoints on the circle.
+    Returns an array of a tuple containing the points (x,y) on the circle and the curve gradient in the point (dx,dy)
+    Notice the gradient (dx,dy) has unit length'''
+
+
     s = np.linspace(0, 2*math.pi, nPoints)
-    #p = (radius*np.cos(t)+center[0],radius*np.sin(t)+center[1])
-    
     #points
-    P = [(radius*np.cos(t)+center[0], radius*np.sin(t)+center[1],np.cos(t),np.sin(t) ) for t in s ]
+    P = [(radius*np.cos(t)+center[0], np.sin(t)+center[1],np.cos(t),np.sin(t) ) for t in s ]
     return P
 
 
@@ -72,8 +74,8 @@ def getLineCoordinates(p1, p2):
         points.reverse()
        
     retPoints = np.array(points)
-    X = retPoints[:,0]
-    Y = retPoints[:,1]
+    X = retPoints[:,0];
+    Y = retPoints[:,1];
     
     
     return retPoints 
@@ -123,7 +125,7 @@ class RegionProps:
             retVal = (-1,-1)    
         return retVal
         
-    def __calcEquivDiameter(self,m,contur):
+    def __calcEquivDiameter(self,contur):
         Area = self.__calcArea(m)
         return np.sqrt(4*Area/np.pi)
     def __calcExtend(self,m,c):
@@ -141,32 +143,32 @@ class RegionProps:
          #    print "stuff:", type(m), type(c)
         
     def CalcContourProperties(self,contour,properties=[]):
-        failInInput = False
+        failInInput = False;
         propertyList=[]
-        contourProps={}
+        contourProps={};
         for prop in properties:
             prop = str(prop).lower()        
             m = cv2.moments(contour) #Always call moments
             if (prop=='area'):
-                contourProps.update({'Area':self.__calcArea(m,contour)})
+                contourProps.update({'Area':self.__calcArea(m,contour)}); 
             elif (prop=="boundingbox"):
-                contourProps.update({'BoundingBox':self.__calcBoundingBox(contour)})
+                contourProps.update({'BoundingBox':self.__calcBoundingBox(contour)});
             elif (prop=="length"):
-                contourProps.update({'Length':self.__calcLength(contour)})
+                contourProps.update({'Length':self.__calcLength(contour)});
             elif (prop=="centroid"):
-                contourProps.update({'Centroid':self.__calcCentroid(m)})
+                contourProps.update({'Centroid':self.__calcCentroid(m)});
             elif (prop=="moments"):
-                contourProps.update({'Moments':m})
+                contourProps.update({'Moments':m});    
             elif (prop=="perimiter"):
-                contourProps.update({'Perimiter':self.__calcPermiter(contour)})
+                contourProps.update({'Perimiter':self.__calcPermiter(contour)}); 
             elif (prop=="equivdiameter"):
                 contourProps.update({'EquivDiameter':self.__calcEquiDiameter(m,contour)}); 
             elif (prop=="extend"):
-                contourProps.update({'Extend':self.__calcExtend(m,contour)})
+                contourProps.update({'Extend':self.__calcExtend(m,contour)});
             elif (prop=="convexhull"): #Returns the dictionary
-                contourProps.update(self.__calcConvexHull(m,contour))
+                contourProps.update(self.__calcConvexHull(m,contour));  
             elif (prop=="isConvex"):
-                    contourProps.update({'IsConvex': cv2.isContourConvex(contour)})
+                    contourProps.update({'IsConvex': cv2.isContourConvex(contour)});
             elif failInInput:   
                     pass   
             else:    
@@ -174,7 +176,7 @@ class RegionProps:
                 print "*** PROPERTY ERROR "+ prop+" DOES NOT EXIST ***" 
                 print "THIS ERROR MESSAGE WILL ONLY BE PRINTED ONCE"
                 print "--"*20
-                failInInput = True
+                failInInput = True;     
         return contourProps         
 
 
@@ -280,7 +282,7 @@ def rotateImage(I, angle):
     size = I.shape
     image_center = tuple(np.array(size)/2)
     rot_mat = cv2.getRotationMatrix2D(image_center[0:2],angle,1)
-    result = cv2.warpAffine(I, rot_mat,dsize=size[0:2],flags=cv2.INTER_LINEAR)
+    result = cv2.warpAffine(image, rot_mat,dsize=size[0:2],flags=cv2.INTER_LINEAR)
     return result
 
 def lookat(eye, target, up = (0, 0, 1)):
@@ -460,7 +462,7 @@ def calibrateCamera(camNum =0,nPoints=5,patternSize=(9,6)):
                 img_points.append(corners.reshape(-1, 2))
                 obj_points.append(pattern_points)
                 n=n-1 
-                imgCnt=imgCnt+1
+                imgCnt=imgCnt+1;    
                 print('sample %s taken')%(imgCnt)
 
                 if n==0:
