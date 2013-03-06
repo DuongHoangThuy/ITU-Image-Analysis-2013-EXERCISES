@@ -27,7 +27,11 @@ frameNr =0
 
 
 def GetPupil(gray,thr):
+    '''Given a gray level image, gray and threshold value return a list of pupil locations'''
     tempResultImg = cv2.cvtColor(gray,cv2.COLOR_GRAY2BGR) #used to draw temporary results
+    
+    #cv2.circle(tempResultImg,(100,200), 2, (0,0,255),4)
+    #cv2.imshow("TempResults",tempResultImg)
 
 #       Blur the image (with a gausian filter, but ideally box filter (all 1s)), then apply histogram equalization to increase the contrast
 #+/-:   threshold works better, but relying on the angle of ellipses decreases
@@ -50,6 +54,10 @@ def GetPupil(gray,thr):
     binI = cv2.morphologyEx(binI, cv2.MORPH_DILATE, st7, iterations=2) #Dialite  
     
     cv2.imshow("ThresholdPupil",binI)
+
+    val,binI = cv2.threshold(gray, thr, 255, cv2.THRESH_BINARY_INV)
+    cv2.imshow("Threshold",binI)
+    parent of e8ca741... Mandatory assignment part 1 finished.
     #Calculate blobs
     sliderVals = getSliderVals() #Getting slider values
 #       Gather the remaining blobs for analysis
@@ -57,6 +65,7 @@ def GetPupil(gray,thr):
     pupils = []#used to store center of blobs
     pupilEllipses = []#used to store ellipses
     for cnt in contours:
+<<<<<<< HEAD
         if len(cnt)>=5:
 
             values = props.CalcContourProperties(cnt.astype('int'),['Area','Length','Centroid','Perimiter','Extend','ConvexHull']) #BUG - Add cnt.astype('int') in Windows
@@ -88,10 +97,20 @@ def GetGlints(gray,thr):
 #       Do morphological operations open, dilate(to increase the area size from opening)
     st7 = cv2.getStructuringElement(cv2.MORPH_CROSS,(7,7))
     st9 = cv2.getStructuringElement(cv2.MORPH_CROSS,(7,7))
+=======
+        values = props.CalcContourProperties(cnt,['Area','Length','Centroid','Extend','ConvexHull']) #BUG - Add cnt.astype('int') in Windows
+        if values['Area'] < sliderVals['maxSize'] and values['Area'] > sliderVals['minSize'] and values['Extend'] < 1.2:
+            pupils.append(values)
+            centroid = (int(values['Centroid'][0]),int(values['Centroid'][1]))
+            cv2.circle(tempResultImg,centroid, 2, (0,0,255),4)
+            pupilEllipses.append(cv2.fitEllipse(cnt))
+    cv2.imshow("TempResults",tempResultImg)
+    return pupilEllipses 
     
-    binI= cv2.morphologyEx(binI, cv2.MORPH_OPEN, st7)
-    binI = cv2.morphologyEx(binI, cv2.MORPH_DILATE, st9, iterations=2)
+>>>>>>> parent of e8ca741... Mandatory assignment part 1 finished.
     
+    
+<<<<<<< HEAD
     cv2.imshow("ThresholdGlints",binI)
 
 #       Calculate blobs
@@ -149,6 +168,23 @@ def FilterPupilGlint(pupils,glints):
 def getDistance(pair1,pair2):
     distance=math.sqrt(math.pow(pair1[0]-pair2[0],2)+math.pow(pair1[1]-pair2[1],2))
     return distance
+=======
+            
+            
+            
+        
+    
+    
+    # YOUR IMPLEMENTATION HERE !!!!
+
+    return pupils
+
+def GetGlints(gray,thr):
+    ''' Given a gray level image, gray and threshold
+    value return a list of glint locations'''
+    # YOUR IMPLEMENTATION HERE !!!!
+    pass
+>>>>>>> parent of e8ca741... Mandatory assignment part 1 finished.
 
 def GetIrisUsingThreshold(gray,pupil):
     ''' Given a gray level image, gray and threshold
@@ -225,19 +261,17 @@ def update(I):
         step=18
         cv2.putText(img, "pupilThr :"+str(sliderVals['pupilThr']), (x, y), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.CV_AA)
         cv2.putText(img, "glintThr :"+str(sliderVals['glintThr']), (x, y+step), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.CV_AA)
-        cv2.putText(img, "maxSizePupil :"+str(sliderVals['maxSizePupil']), (x, y+2*step), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.CV_AA)
-        cv2.putText(img, "minSizePupil :"+str(sliderVals['minSizePupil']), (x, y+3*step), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.CV_AA)
-        cv2.putText(img, "maxSizeGlints :"+str(sliderVals['maxSizeGlints']), (x, y+4*step), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.CV_AA)
-        cv2.putText(img, "minSizeGlints :"+str(sliderVals['minSizeGlints']), (x, y+5*step), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.CV_AA)
-        
+        cv2.putText(img, "maxSize :"+str(sliderVals['maxSize']), (x, y+2*step), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.CV_AA)
+        cv2.putText(img, "minSize :"+str(sliderVals['minSize']), (x, y+3*step), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.CV_AA)
+        cv2.putText(img, "minSize :"+str(sliderVals['minSize']), (x, y+4*step), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.CV_AA)
 
     for pupil in pupils:
         cv2.ellipse(img,pupil,(0,255,0),1)
         C = int(pupil[0][0]),int(pupil[0][1])
         cv2.circle(img,C, 2, (0,0,255),4)
-    for glint in glints:
-        C = int(glint[0][0]),int(glint[0][1])
-        cv2.circle(img,C, 2,(255,0,255),5)
+    #for glint in glints:
+        #C = int(glint[0]),int(glint[1])
+        #cv2.circle(img,C, 2,(255,0,255),5)
     cv2.imshow("Result", img)
 
         #For Iris detection - Week 2
@@ -303,8 +337,7 @@ def run(fileName,resultFile='eyeTrackingResults.avi'):
             break
         if(ch==32): #Spacebar
             sliderVals = getSliderVals()
-            cv2.setTrackbarPos('Stop/Start','ThresholdGlints',not sliderVals['Running'])
-            cv2.setTrackbarPos('Stop/Start','ThresholdPupil',not sliderVals['Running'])
+            cv2.setTrackbarPos('Stop/Start','Threshold',not sliderVals['Running'])
         if(ch==ord('r')):
             frameNr =0
             sequenceOK=False
@@ -336,34 +369,26 @@ def setText(dst, (x, y), s):
 def setupWindowSliders():
     ''' Define windows for displaying the results and create trackbars'''
     cv2.namedWindow("Result")
-    cv2.namedWindow('ThresholdPupil')
-    cv2.namedWindow('ThresholdGlints')
+    cv2.namedWindow('Threshold')
     cv2.namedWindow("TempResults")
     #Threshold value for the pupil intensity
-    cv2.createTrackbar('pupilThr','ThresholdPupil', 90, 255, onSlidersChange)
+    cv2.createTrackbar('pupilThr','Threshold', 90, 255, onSlidersChange)
     #Threshold value for the glint intensities
-    cv2.createTrackbar('glintThr','ThresholdGlints', 245, 255,onSlidersChange)
+    cv2.createTrackbar('glintThr','Threshold', 240, 255,onSlidersChange)
     #define the minimum and maximum areas of the pupil
-    cv2.createTrackbar('minSizePupil','ThresholdPupil', 20, 200, onSlidersChange)
-    cv2.createTrackbar('maxSizePupil','ThresholdPupil', 200,200, onSlidersChange)
-    #define the minimum and maximum areas of the glints
-    cv2.createTrackbar('minSizeGlints','ThresholdGlints', 10, 50, onSlidersChange)
-    cv2.createTrackbar('maxSizeGlints','ThresholdGlints', 50,50, onSlidersChange)
+    cv2.createTrackbar('minSize','Threshold', 20, 200, onSlidersChange)
+    cv2.createTrackbar('maxSize','Threshold', 200,200, onSlidersChange)
     #Value to indicate whether to run or pause the video
-    cv2.createTrackbar('Stop/Start','ThresholdPupil', 0,1, onSlidersChange)
-    cv2.createTrackbar('Stop/Start','ThresholdGlints', 0,1, onSlidersChange)
+    cv2.createTrackbar('Stop/Start','Threshold', 0,1, onSlidersChange)
 
 def getSliderVals():
     '''Extract the values of the sliders and return these in a dictionary'''
     sliderVals={}
-    sliderVals['pupilThr'] = cv2.getTrackbarPos('pupilThr', 'ThresholdPupil')
-    sliderVals['glintThr'] = cv2.getTrackbarPos('glintThr', 'ThresholdGlints')
-    sliderVals['minSizePupil'] = 50*cv2.getTrackbarPos('minSizePupil', 'ThresholdPupil')
-    sliderVals['maxSizePupil'] = 50*cv2.getTrackbarPos('maxSizePupil', 'ThresholdPupil')
-    sliderVals['minSizeGlints'] = 50*cv2.getTrackbarPos('minSizeGlints', 'ThresholdGlints')
-    sliderVals['maxSizeGlints'] = 50*cv2.getTrackbarPos('maxSizeGlints', 'ThresholdGlints')
-    sliderVals['Running'] = 1==cv2.getTrackbarPos('Stop/Start', 'ThresholdPupil')
-    sliderVals['Running'] = 1==cv2.getTrackbarPos('Stop/Start', 'ThresholdGlints')
+    sliderVals['pupilThr'] = cv2.getTrackbarPos('pupilThr', 'Threshold')
+    sliderVals['glintThr'] = cv2.getTrackbarPos('glintThr', 'Threshold')
+    sliderVals['minSize'] = 50*cv2.getTrackbarPos('minSize', 'Threshold')
+    sliderVals['maxSize'] = 50*cv2.getTrackbarPos('maxSize', 'Threshold')
+    sliderVals['Running'] = 1==cv2.getTrackbarPos('Stop/Start', 'Threshold')
     return sliderVals
 
 def onSlidersChange(dummy=None):
