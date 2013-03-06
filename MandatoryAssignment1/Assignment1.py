@@ -8,6 +8,10 @@ from SIGBTools import getImageSequence
 import numpy as np
 import sys
 
+from scipy.cluster.vq import *
+from scipy.misc import *
+from matplotlib.pyplot import *
+
 
 
 
@@ -55,6 +59,44 @@ def GetPupil(gray,thr):
             pupilEllipses.append(cv2.fitEllipse(cnt))
     cv2.imshow("TempResults",tempResultImg)
     return pupilEllipses 
+
+
+
+# ------------------- PART 2
+def detectPupilKMeans(gray,K,distanceWeight,reSize):
+    ''' Detects the pupil in the image, gray, using k-means
+gray : grays scale image
+K : Number of clusters
+distanceWeight : Defines the weight of the position parameters
+reSize : the size of the image to do k-means on
+'''
+     #Resize for faster performance
+    smallI = cv2.resize(gray, reSize)
+    M,N = smallI.shape
+    #Generate coordinates in a matrix
+    X,Y = np.meshgrid(range(M),range(N))
+    #Make coordinates and intensity into one vectors
+    z = smallI.flatten()
+    x = X.flatten()
+    y = Y.flatten()
+    O = len(x)
+    #make a feature vectors containing (x,y,intensity)
+    features = np.zeros((O,3))
+    features[:,0] = z;
+    features[:,1] = y/distanceWeight; #Divide so that the distance of position weighs lessthan intensity
+    features[:,2] = x/distanceWeight;
+    features = np.array(features,'f')
+    # cluster data
+    centroids,variance = kmeans(features,K)
+    #use the found clusters to map
+    label,distance = vq(features,centroids)
+    # re-create image from
+    labelIm = np.array(np.reshape(label,(M,N)))
+    f = figure(1)
+    imshow(labelIm)
+    f.canvas.draw()
+    f.show()
+    
 
 
 def GetGlints(gray,thr):
@@ -150,7 +192,27 @@ def update(I):
     pupils = GetPupil(gray,sliderVals['pupilThr'])
     glints = GetGlints(gray,sliderVals['glintThr'])
     FilterPupilGlint(pupils,glints)
-
+    #Detect pupil K-Means
+    
+     #
+    #Assignemtn 1 part 2. (2,3) 
+    #Changing the distanceWeight doesnt seem to have any influence on pupil detection. Am I doing something wrong? 
+    #I guess its becuase we have too few clusters.
+    # 
+    distanceWeight = 5                     
+    
+    
+    #
+    #Assignment 1 part 2. (4)
+    #Values K = 4 and 5 separates pupil the best. When the values are highier than 5 there are too many classes for classification and output image gets more eroded and pupil less visible . 
+    #Moreover if we keep value at 4 we can even detect Iris but its not properly classified on every frame.
+    #
+    K = 16            
+          
+    reSize = (40,40)
+    
+    detectPupilKMeans(gray, K, distanceWeight, reSize) 
+    
     #Do template matching
     global leftTemplate
     global rightTemplate
@@ -274,7 +336,6 @@ def setText(dst, (x, y), s):
 
 
 def setupWindowSliders():
-    ''' Define windows for displaying the results and create trackbars'''
     cv2.namedWindow("Result")
     cv2.namedWindow('ThresholdPupil')
     cv2.namedWindow('ThresholdGlints')
