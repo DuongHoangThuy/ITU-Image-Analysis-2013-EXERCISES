@@ -11,6 +11,7 @@ import sys
 from scipy.cluster.vq import *
 from scipy.misc import *
 from matplotlib.pyplot import *
+from numpy.core.numeric import ndarray
 
 
 
@@ -70,7 +71,7 @@ K : Number of clusters
 distanceWeight : Defines the weight of the position parameters
 reSize : the size of the image to do k-means on
 '''
-     #Resize for faster performance
+    #Resize for faster performance
     smallI = cv2.resize(gray, reSize)
     M,N = smallI.shape
     #Generate coordinates in a matrix
@@ -88,14 +89,70 @@ reSize : the size of the image to do k-means on
     features = np.array(features,'f')
     # cluster data
     centroids,variance = kmeans(features,K)
+    centroids.sort(axis = 0) # Sorting clusters according to intensity (ascending)
+    pupilCluster = centroids[0] #Choosing the lowest intesity cluster. pupilCluster[0] is threshold for finding pupil for later
+    
+    #BLOB detection----------------------------------------
+    tempResultImg = cv2.cvtColor(gray,cv2.COLOR_GRAY2BGR)
+    val,binI = cv2.threshold(gray, pupilCluster[0], 255, cv2.THRESH_BINARY_INV)
+    
+    #Appplying morphology
+    st7 = cv2.getStructuringElement(cv2.MORPH_CROSS,(7,7))
+    st9 = cv2.getStructuringElement(cv2.MORPH_CROSS,(9,9))
+    st15 = cv2.getStructuringElement(cv2.MORPH_CROSS,(15,15))
+             
+    binI = cv2.morphologyEx(binI, cv2.MORPH_CLOSE, st15) #Close 
+    binI= cv2.morphologyEx(binI, cv2.MORPH_OPEN, st7)
+   
+    #binI = cv2.morphologyEx(binI, cv2.MORPH_DILATE, st7, iterations=2) #Dialite 
+    
+    cv2.imshow("ThresholdPupil",binI)
+     
+    sliderVals = getSliderVals() #Getting slider values
+    props = RegionProps() 
+    contours, hierarchy = cv2.findContours(binI, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) #Finding contours/candidates for pupil blob
+    pupils = []
+    pupilEllipses = []
+    for cnt in contours:
+        values = props.CalcContourProperties(cnt,['Area','Length','Centroid','Extend','ConvexHull']) #BUG - Add cnt.astype('int') in Windows
+        if values['Area'] < sliderVals['maxSizePupil'] and values['Area'] > sliderVals['minSizePupil'] and values['Extend'] < 0.9:
+            pupils.append(values)
+            centroid = (int(values['Centroid'][0]),int(values['Centroid'][1]))
+            cv2.circle(tempResultImg,centroid, 2, (0,0,255),4)
+            pupilEllipses.append(cv2.fitEllipse(cnt))
+    cv2.imshow("TempResults",tempResultImg)
+    return pupilEllipses 
+    
+    
     #use the found clusters to map
-    label,distance = vq(features,centroids)
+    #label,distance = vq(features,centroids)
     # re-create image from
-    labelIm = np.array(np.reshape(label,(M,N)))
-    f = figure(1)
-    imshow(labelIm)
-    f.canvas.draw()
-    f.show()
+    #labelIm = np.array(np.reshape(label,(M,N)))
+    
+    '''This snippet is my try of applying BLOB detection on labelIm. I give up and I see no sense in doing that to be honest. There is easier way that I am going to take.'''
+    #Very ugly way of extracting pupil cluster on labelIm. It can be done in two lines I'm sure. I have no Idea why theay made us do blob detection on labelIm anyway. I can have perfectly fine result on gray image using data I laready have
+    #labelCopy = []
+    #for a in labelIm:
+    #    newBlock = []
+    #    for b in a:
+    #        if b !=0: 
+    #            b=255
+    #        newBlock.append(b)
+    #    labelCopy.append(newBlock)
+    
+    #Applying some morphology
+    #labelCopy = np.array(labelCopy)
+    #st7 = cv2.getStructuringElement(cv2.MORPH_CROSS,(7,7))
+    # 
+    #labelCopy = cv2.morphologyEx(labelCopy, cv2.MORPH_CLOSE, st7) #Close #That doesn't work.
+    #labelCopy = cv2.morphologyEx(labelCopy, cv2.MORPH_OPEN, st7) #Open
+    #binI = cv2.morphologyEx(binI, cv2.MORPH_DILATE, st7, iterations=2) #Dialite          
+    
+    
+    #f = figure(1)
+    #imshow(labelIm) #labelIm
+    #f.canvas.draw()
+    #f.show()     
     
 
 
@@ -189,8 +246,8 @@ def update(I):
     sliderVals = getSliderVals()
     gray = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
     # Do the magic
-    pupils = GetPupil(gray,sliderVals['pupilThr'])
-    glints = GetGlints(gray,sliderVals['glintThr'])
+    pupils = []# GetPupil(gray,sliderVals['pupilThr'])
+    glints = []# GetGlints(gray,sliderVals['glintThr'])
     FilterPupilGlint(pupils,glints)
     #Detect pupil K-Means
     
@@ -199,7 +256,7 @@ def update(I):
     #Changing the distanceWeight doesnt seem to have any influence on pupil detection. Am I doing something wrong? 
     #I guess its becuase we have too few clusters.
     # 
-    distanceWeight = 5                     
+    distanceWeight = 2                      
     
     
     #
@@ -207,8 +264,14 @@ def update(I):
     #Values K = 4 and 5 separates pupil the best. When the values are highier than 5 there are too many classes for classification and output image gets more eroded and pupil less visible . 
     #Moreover if we keep value at 4 we can even detect Iris but its not properly classified on every frame.
     #
-    K = 16            
-          
+    K = 4 
+    
+    #
+    #Assignment 1 part 2. (5)
+    #The values that give the best values are K=4 and distanceWeight=2 (making it higher for low amount of cluster makes almost no difference).  
+    #This values doesn't apply that well in other sequences but they are still batter than in binary thresholding.
+    # 
+  
     reSize = (40,40)
     
     detectPupilKMeans(gray, K, distanceWeight, reSize) 
