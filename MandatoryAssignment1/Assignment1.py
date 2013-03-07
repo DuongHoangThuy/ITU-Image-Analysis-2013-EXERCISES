@@ -92,13 +92,14 @@ reSize : the size of the image to do k-means on
     centroids.sort(axis = 0) # Sorting clusters according to intensity (ascending)
     pupilCluster = centroids[0] #Choosing the lowest intesity cluster. pupilCluster[0] is threshold for finding pupil for later
     
-    #BLOB detection----------------------------------------
+    
+    
+    #Wiktor's way of BLOB detection which is not that accurate-----------------------------------
     tempResultImg = cv2.cvtColor(gray,cv2.COLOR_GRAY2BGR)
     val,binI = cv2.threshold(gray, pupilCluster[0], 255, cv2.THRESH_BINARY_INV)
     
     #Appplying morphology
     st7 = cv2.getStructuringElement(cv2.MORPH_CROSS,(7,7))
-    st9 = cv2.getStructuringElement(cv2.MORPH_CROSS,(9,9))
     st15 = cv2.getStructuringElement(cv2.MORPH_CROSS,(15,15))
              
     binI = cv2.morphologyEx(binI, cv2.MORPH_CLOSE, st15) #Close 
@@ -123,14 +124,14 @@ reSize : the size of the image to do k-means on
     cv2.imshow("TempResults",tempResultImg)
     return pupilEllipses 
     
-    
+ #--------------------------------------This snippet belongs to function detectPupilKmeans if there were any doubts-------   
     #use the found clusters to map
     #label,distance = vq(features,centroids)
     # re-create image from
     #labelIm = np.array(np.reshape(label,(M,N)))
     
-    '''This snippet is my try of applying BLOB detection on labelIm. I give up and I see no sense in doing that to be honest. There is easier way that I am going to take.'''
-    #Very ugly way of extracting pupil cluster on labelIm. It can be done in two lines I'm sure. I have no Idea why theay made us do blob detection on labelIm anyway. I can have perfectly fine result on gray image using data I laready have
+    '''This snippet is my try of applying BLOB detection on labelIm (ex 1.7) . I give up and I see no sense in doing that to be honest. Maybe I don't unerstand that.'''
+    #Very ugly way of extracting pupil cluster on labelIm. It can be done in two lines I'm sure. I have no Idea why they made us do blob detection on labelIm anyway. I can have perfectly fine result on gray image using data I laready have
     #labelCopy = []
     #for a in labelIm:
     #    newBlock = []
@@ -142,17 +143,38 @@ reSize : the size of the image to do k-means on
     
     #Applying some morphology
     #labelCopy = np.array(labelCopy)
-    #st7 = cv2.getStructuringElement(cv2.MORPH_CROSS,(7,7))
-    # 
-    #labelCopy = cv2.morphologyEx(labelCopy, cv2.MORPH_CLOSE, st7) #Close #That doesn't work.
-    #labelCopy = cv2.morphologyEx(labelCopy, cv2.MORPH_OPEN, st7) #Open
-    #binI = cv2.morphologyEx(binI, cv2.MORPH_DILATE, st7, iterations=2) #Dialite          
-    
+    #Here I get binary image showing only cluster containing pixels which intensity equals pupil intensity. Here we should continue with blob detection...     
+    ''' end snippet'''
     
     #f = figure(1)
     #imshow(labelIm) #labelIm
     #f.canvas.draw()
-    #f.show()     
+    #f.show()
+ #-------------------------------------------------------------------------------------------   
+         
+
+def getPupilThershold(gray, K, distanceWeight):
+     #Resize for faster performance
+    smallI = cv2.resize(gray, (40,40))
+    M,N = smallI.shape
+    #Generate coordinates in a matrix
+    X,Y = np.meshgrid(range(M),range(N))
+    #Make coordinates and intensity into one vectors
+    z = smallI.flatten()
+    x = X.flatten()
+    y = Y.flatten()
+    O = len(x)
+    #make a feature vectors containing (x,y,intensity)
+    features = np.zeros((O,3))
+    features[:,0] = z;
+    features[:,1] = y/distanceWeight; #Divide so that the distance of position weighs lessthan intensity
+    features[:,2] = x/distanceWeight;
+    features = np.array(features,'f')
+    # cluster data
+    centroids,variance = kmeans(features,K)
+    centroids.sort(axis = 0) # Sorting clusters according to intensity (ascending)
+    pupilCluster = centroids[0] #Choosing the lowest intesity cluster. pupilCluster[0] is threshold for finding pupil for later
+    return pupilCluster[0]
     
 
 
@@ -246,17 +268,20 @@ def update(I):
     sliderVals = getSliderVals()
     gray = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
     # Do the magic
-    pupils = []# GetPupil(gray,sliderVals['pupilThr'])
+    pupils = GetPupil(gray,getPupilThershold(gray, K=4, distanceWeight=2)) #Automatic thresholding using Kmeans. Could be quite precise when using Atanas'es pupil filtering.
     glints = []# GetGlints(gray,sliderVals['glintThr'])
+    
     FilterPupilGlint(pupils,glints)
-    #Detect pupil K-Means
+    
+    
+    #-----------------------Detect pupil K-Means
     
      #
     #Assignemtn 1 part 2. (2,3) 
     #Changing the distanceWeight doesnt seem to have any influence on pupil detection. Am I doing something wrong? 
     #I guess its becuase we have too few clusters.
     # 
-    distanceWeight = 2                      
+    distanceWeight = 2   #used wen running only detectPupilKmeans                   
     
     
     #
@@ -264,17 +289,31 @@ def update(I):
     #Values K = 4 and 5 separates pupil the best. When the values are highier than 5 there are too many classes for classification and output image gets more eroded and pupil less visible . 
     #Moreover if we keep value at 4 we can even detect Iris but its not properly classified on every frame.
     #
-    K = 4 
+    K = 4 #used wen running only detectPupilKmeans
     
     #
     #Assignment 1 part 2. (5)
-    #The values that give the best values are K=4 and distanceWeight=2 (making it higher for low amount of cluster makes almost no difference).  
+    #The values that give the best values are K=4 and distanceWeight=2 (making it higher for low amount of clusters makes almost no difference).  
     #This values doesn't apply that well in other sequences but they are still batter than in binary thresholding.
     # 
   
-    reSize = (40,40)
+    reSize = (40,40) #used wen running only detectPupilKmeans
     
-    detectPupilKMeans(gray, K, distanceWeight, reSize) 
+    #detectPupilKMeans(gray, K, distanceWeight, reSize) 
+    
+    #
+    #Assignment 1 part 2. (8)
+    #The advantage of using clustering before BLOB detection is that we can find pixel intensity of the object that we are looking for and therefore automatically set threshold.  
+    #This isn't however an ultimate method. Using clustering still requires setting number of cluster and distance weight between pixels. The more diverse lighting conditions the more clusters you have to use. 
+    #
+    
+    #
+    #Assignment 1 part 2. (10)
+    #Not in this example. In some very rare condiitons (not with eye tracking) you could definately do that because when you use Kmeans you get center points of clusters whoch you could use. 
+    #If every object had different pixel intensity then yes, you could use Kmeans for detecting some objects. 
+    #
+    
+    #-----------------------------------------------
     
     #Do template matching
     global leftTemplate
