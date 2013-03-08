@@ -173,7 +173,7 @@ def getPupilThershold(gray, K, distanceWeight):
     # cluster data
     centroids,variance = kmeans(features,K)
     centroids.sort(axis = 0) # Sorting clusters according to intensity (ascending)
-    pupilCluster = centroids[0] #Choosing the lowest intesity cluster. pupilCluster[0] is threshold for finding pupil for later
+    pupilCluster = centroids[0] #Choosing the lowest intesity cluster. pupilCluster[0] is threshold for finding pupil
     return pupilCluster[0]
     
 
@@ -208,7 +208,7 @@ def GetGlints(gray,thr):
     return glintEllipses
 
 
-def GetIrisUsingThreshold(gray,pupil):
+def GetIrisUsingThreshold(gray, thr):
     ''' Given a gray level image, gray and threshold
     value return a list of iris locations'''
     # YOUR IMPLEMENTATION HERE !!!!
@@ -240,6 +240,8 @@ def circularHough(gray):
     c=all_circles[0,:]
     cv2.circle(gColor, (int(c[0]),int(c[1])),c[2], (0,0,255),5)
     cv2.imshow("hough",gColor)
+    
+
 
 def GetIrisUsingNormals(gray,pupil,normalLength):
     ''' Given a gray level image, gray and the length of the normals, normalLength

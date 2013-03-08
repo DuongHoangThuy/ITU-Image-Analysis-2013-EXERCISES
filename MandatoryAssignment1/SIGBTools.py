@@ -17,7 +17,7 @@ def getCircleSamples(center=(0,0),radius=1,nPoints=30):
 
     s = np.linspace(0, 2*math.pi, nPoints)
     #points
-    P = [(radius*np.cos(t)+center[0], np.sin(t)+center[1],np.cos(t),np.sin(t) ) for t in s ]
+    P = [(radius*np.cos(t)+center[0], radius*np.sin(t)+center[1],np.cos(t),np.sin(t) ) for t in s ]
     return P
 
 
@@ -160,7 +160,7 @@ class RegionProps:
             elif (prop=="moments"):
                 contourProps.update({'Moments':m});    
             elif (prop=="perimiter"):
-                contourProps.update({'Perimiter':self.__calcPermiter(contour)}); 
+                contourProps.update({'Perimiter':self.__calcPerimiter(contour)});
             elif (prop=="equivdiameter"):
                 contourProps.update({'EquivDiameter':self.__calcEquiDiameter(m,contour)}); 
             elif (prop=="extend"):
