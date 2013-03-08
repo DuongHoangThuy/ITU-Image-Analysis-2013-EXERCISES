@@ -5,6 +5,7 @@ from SIGBTools import RegionProps
 from SIGBTools import getLineCoordinates
 from SIGBTools import ROISelector
 from SIGBTools import getImageSequence
+from SIGBTools import getCircleSamples
 import numpy as np
 import sys
 import math
@@ -275,6 +276,11 @@ def GetGradientImageInfo(I):
     #fx.canvas.draw()
     #fx.show()
     
+    
+def circleTest(nPts,C,circleRadius):
+    P = getCircleSamples(center=C, radius=circleRadius, nPoints=nPts)
+    return P
+    
 
 def circularHough(gray):
     ''' Performs a circular hough transform of the image, gray and shows the  detected circles
@@ -332,12 +338,18 @@ def update(I):
     sliderVals = getSliderVals()
     gray = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
     # Do the magic
-    pupils = []# GetPupil(gray,getPupilThershold(gray, K=4, distanceWeight=2)) #Automatic thresholding using Kmeans. Could be quite precise when using Atanas'es pupil filtering.
+    pupils = GetPupil(gray, sliderVals["pupilThr"]) #Get pupil manual threshold
+    #pupils = GetPupil(gray,getPupilThershold(gray, K=4, distanceWeight=2)) #Automatic thresholding using Kmeans. Could be quite precise when using Atanas'es pupil filtering.
     glints = []# GetGlints(gray,sliderVals['glintThr'])
     irises = GetIrisUsingThreshold(gray, sliderVals['glintThr'])
     
-    FilterPupilGlint(pupils,glints)
-    GetGradientImageInfo(I)
+    FilterPupilGlint(pupils, glints)
+    
+    #Assignment 1 part 2|| 2.2 (1)
+    #
+    #GetGradientImageInfo(I)
+    #
+    
     
     #-----------------------Detect pupil K-Means
     
@@ -405,6 +417,14 @@ def update(I):
         cv2.ellipse(img,pupil,(0,255,0),1)
         C = int(pupil[0][0]),int(pupil[0][1])
         cv2.circle(img,C, 2, (0,0,255),4)
+        
+        #Assignment 1 part 2|| 2.2 (5)
+        #Getting circle points around iris for every pupil.
+        P = circleTest(20, C, 70)
+        for circlePoint in P:
+            #print circlePoint[1]
+            cv2.circle(img, (int(circlePoint[0]), int(circlePoint[1])), 1, (0,0,255), 4)
+        
     for glint in glints:
         C = int(glint[0][0]),int(glint[0][1])
         cv2.circle(img,C, 2,(255,0,255),5)
@@ -421,7 +441,7 @@ def printUsage():
     print "Q or ESC: Stop"
     print "SPACE: Pause"
     print "r: reload video"
-    print 'm: Mark region when the video has paused'
+    print 'm: Mark region when the video has paus ed'
     print 's: toggle video  writing'
     print 'c: close video sequence'
 
