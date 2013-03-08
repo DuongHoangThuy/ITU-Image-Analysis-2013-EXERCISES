@@ -60,7 +60,8 @@ def GetPupil(gray,thr):
             cv2.circle(tempResultImg,centroid, 2, (0,0,255),4)
             pupilEllipses.append(cv2.fitEllipse(cnt))
     cv2.imshow("TempResults",tempResultImg)
-    return pupilEllipses
+    return pupilEllipses 
+
 
 
 # ------------------- PART 2
@@ -254,8 +255,6 @@ def GetGradientImageInfo(I):
     #Creating gradient X and Y images.
     gray = cv2.cvtColor(I, cv2.COLOR_RGB2GRAY)
     
-    
-    #There should be more beautiful way than manually but who cares anyway. That works fine!
     kernelSobelX = np.array([[-1,0,1],[-2,0,2],[-1,0,1]])/9.0
     kernelSobelY = np.array([[1,2,1],[0,0,0],[-1,-2,-1]])/9.0
     
@@ -267,11 +266,7 @@ def GetGradientImageInfo(I):
     
     #Magnitude
     DeltaI = np.sqrt(np.power(DstSobelY,2) + np.power(DstSobelX,2))
-
-    #
-    #Mandatory Assignment 1 2.2 (2)
-    #I don't understand the question. :-(
-    #
+    
     
     #Just to see how they look like :-)
     #
@@ -279,13 +274,6 @@ def GetGradientImageInfo(I):
     #imshow(DstSobelX)
     #fx.canvas.draw()
     #fx.show()
-    
-def circleTest(nPts, C, circleRadius):
-    P = getCircleSamples(center=C, radius=circleRadius, nPoints=nPts)    
-    t=0;#Whats T?
-    for (x,y,dx,dy) in P:
-        #
-        pass
     
 
 def circularHough(gray):
@@ -343,33 +331,18 @@ def update(I):
     img = I.copy()
     sliderVals = getSliderVals()
     gray = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
-    
     # Do the magic
-    pupils = GetPupil(gray, sliderVals["pupilThr"])
-    #pupils = GetPupil(gray, getPupilThershold(gray, K=4, distanceWeight=2)) #Automatic thresholding using Kmeans. Could be quite precise when using Atanas'es pupil filtering.
-    #glints = GetGlints(gray,sliderVals['glintThr'])
-    #irises = GetIrisUsingThreshold(gray, sliderVals['glintThr']) #Use glint sliders to adjust
+    pupils = []# GetPupil(gray,getPupilThershold(gray, K=4, distanceWeight=2)) #Automatic thresholding using Kmeans. Could be quite precise when using Atanas'es pupil filtering.
+    glints = []# GetGlints(gray,sliderVals['glintThr'])
+    irises = GetIrisUsingThreshold(gray, sliderVals['glintThr'])
     
-    #FilterPupilGlint(pupils,glints)
-    
-    #
-    #Assignment 1 part 2|| 2.2 (1)
-    #
-    
-    #GetGradientImageInfo(I)
-    
-    #
-    #Assignment 1 part 2|| 2.2 (5)
-    #
-    
-    
-    
-    
+    FilterPupilGlint(pupils,glints)
+    GetGradientImageInfo(I)
     
     #-----------------------Detect pupil K-Means
     
      #
-    #Assignemtn 1 part 2|| 1 (2,3) 
+    #Assignemtn 1 part 2. (2,3) 
     #Changing the distanceWeight doesnt seem to have any influence on pupil detection. Am I doing something wrong? 
     #I guess its becuase we have too few clusters.
     # 
@@ -377,14 +350,14 @@ def update(I):
     
     
     #
-    #Assignment 1 part 2|| 1 (4)
+    #Assignment 1 part 2. (4)
     #Values K = 4 and 5 separates pupil the best. When the values are highier than 5 there are too many classes for classification and output image gets more eroded and pupil less visible . 
     #Moreover if we keep value at 4 we can even detect Iris but its not properly classified on every frame.
     #
     K = 4 #used wen running only detectPupilKmeans
     
     #
-    #Assignment 1 part 2|| 1 (5)
+    #Assignment 1 part 2. (5)
     #The values that give the best values are K=4 and distanceWeight=2 (making it higher for low amount of clusters makes almost no difference).  
     #This values doesn't apply that well in other sequences but they are still batter than in binary thresholding.
     # 
@@ -394,13 +367,13 @@ def update(I):
     #detectPupilKMeans(gray, K, distanceWeight, reSize) 
     
     #
-    #Assignment 1 part 2|| 1 (8)
+    #Assignment 1 part 2. (8)
     #The advantage of using clustering before BLOB detection is that we can find pixel intensity of the object that we are looking for and therefore automatically set threshold.  
     #This isn't however an ultimate method. Using clustering still requires setting number of cluster and distance weight between pixels. The more diverse lighting conditions the more clusters you have to use. 
     #
     
     #
-    #Assignment 1 part 2|| 1 (10)
+    #Assignment 1 part 2. (10)
     #Not in this example. In some very rare condiitons (not with eye tracking) you could definately do that because when you use Kmeans you get center points of clusters whoch you could use. 
     #If every object had different pixel intensity then yes, you could use Kmeans for detecting some objects. 
     #
@@ -429,8 +402,8 @@ def update(I):
         
 
     for pupil in pupils:
-        cv2.ellipse(img,pupils,(0,255,0),1)
-        C = int(pupils[0][0]),int(pupils[0][1])
+        cv2.ellipse(img,pupil,(0,255,0),1)
+        C = int(pupil[0][0]),int(pupil[0][1])
         cv2.circle(img,C, 2, (0,0,255),4)
     for glint in glints:
         C = int(glint[0][0]),int(glint[0][1])
