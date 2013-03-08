@@ -7,6 +7,7 @@ from SIGBTools import ROISelector
 from SIGBTools import getImageSequence
 import numpy as np
 import sys
+import math
 
 from scipy.cluster.vq import *
 from scipy.misc import *
@@ -209,10 +210,71 @@ def GetGlints(gray,thr):
 
 
 def GetIrisUsingThreshold(gray, thr):
-    ''' Given a gray level image, gray and threshold
-    value return a list of iris locations'''
-    # YOUR IMPLEMENTATION HERE !!!!
-    pass
+    #
+    #NOTE: Detecting Iris uses GlintsDetection UI for adjusting parameters. You eather run glints or iris detection in 'update' method.
+    #
+    #Assignment 1 part2 (2.1)
+    #It is almost impossible to detect iris using threshold because I can't get threshold so that Iris becomes an ellipse. It always looks like croissant ;P.  
+    #
+    tempResultImg = cv2.cvtColor(gray,cv2.COLOR_GRAY2BGR) #used to draw temporary results
+
+    props = RegionProps()
+    val,binI = cv2.threshold(gray, thr, 255, cv2.THRESH_BINARY) #Using non inverted binary image
+    
+    #
+    #Applying morphology
+    #Nothing seems to work here!!
+    st7 = cv2.getStructuringElement(cv2.MORPH_CROSS,(13,13))
+    st9 = cv2.getStructuringElement(cv2.MORPH_CROSS, (7,7))
+    
+    binI= cv2.morphologyEx(binI, cv2.MORPH_OPEN, st7)
+    #binI= cv2.morphologyEx(binI, cv2.MORPH_CLOSE, st7)
+    #binI = cv2.morphologyEx(binI, cv2.MORPH_DILATE, st9, iterations=2)
+    
+    cv2.imshow("ThresholdGlints",binI)
+    #Calculate blobs
+    sliderVals = getSliderVals() #Getting slider values
+    contours, hierarchy = cv2.findContours(binI, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) #Finding contours/candidates for pupil blob
+    irises = []
+    irisEllipses = []
+    for cnt in contours:
+        values = props.CalcContourProperties(cnt,['Area','Length','Centroid','Extend','ConvexHull']) #BUG - Add cnt.astype('int') in Windows
+        if values['Area'] < sliderVals['maxSizeGlints'] and values['Area'] > sliderVals['minSizeGlints']:
+            irises.append(values)
+            centroid = (int(values['Centroid'][0]),int(values['Centroid'][1]))
+            cv2.circle(tempResultImg,centroid, 2, (0,0,255),4)
+            irisEllipses.append(cv2.fitEllipse(cnt))
+    cv2.imshow("TempResults",tempResultImg)
+    return irisEllipses
+
+def GetGradientImageInfo(I):
+
+    #
+    #Mandatory Assignment 1 2.2 (1)
+    #
+    #Creating gradient X and Y images.
+    gray = cv2.cvtColor(I, cv2.COLOR_RGB2GRAY)
+    
+    kernelSobelX = np.array([[-1,0,1],[-2,0,2],[-1,0,1]])/9.0
+    kernelSobelY = np.array([[1,2,1],[0,0,0],[-1,-2,-1]])/9.0
+    
+    DstSobelX = cv2.filter2D(gray, -1,kernelSobelX)
+    DstSobelY = cv2.filter2D(gray, -1,kernelSobelY)
+    
+    #Orientation
+    OI = np.arctan2(DstSobelX,DstSobelY)*180/math.pi
+    
+    #Magnitude
+    DeltaI = np.sqrt(np.power(DstSobelY,2) + np.power(DstSobelX,2))
+    
+    
+    #Just to see how they look like :-)
+    #
+    #fx = figure("Gradient image test")
+    #imshow(DstSobelX)
+    #fx.canvas.draw()
+    #fx.show()
+    
 
 def circularHough(gray):
     ''' Performs a circular hough transform of the image, gray and shows the  detected circles
@@ -270,11 +332,12 @@ def update(I):
     sliderVals = getSliderVals()
     gray = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
     # Do the magic
-    pupils = GetPupil(gray,getPupilThershold(gray, K=4, distanceWeight=2)) #Automatic thresholding using Kmeans. Could be quite precise when using Atanas'es pupil filtering.
+    pupils = []# GetPupil(gray,getPupilThershold(gray, K=4, distanceWeight=2)) #Automatic thresholding using Kmeans. Could be quite precise when using Atanas'es pupil filtering.
     glints = []# GetGlints(gray,sliderVals['glintThr'])
+    irises = GetIrisUsingThreshold(gray, sliderVals['glintThr'])
     
     FilterPupilGlint(pupils,glints)
-    
+    GetGradientImageInfo(I)
     
     #-----------------------Detect pupil K-Means
     
