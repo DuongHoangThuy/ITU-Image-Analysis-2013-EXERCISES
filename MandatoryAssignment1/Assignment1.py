@@ -354,7 +354,7 @@ def update(I):
     #-----------------------Detect pupil K-Means
     
      #
-    #Assignemtn 1 part 2. (2,3) 
+    #Assignemtn 1 part 2 || 1 (2,3) 
     #Changing the distanceWeight doesnt seem to have any influence on pupil detection. Am I doing something wrong? 
     #I guess its becuase we have too few clusters.
     # 
@@ -362,14 +362,14 @@ def update(I):
     
     
     #
-    #Assignment 1 part 2. (4)
+    #Assignment 1 part 2 || 1 (4)
     #Values K = 4 and 5 separates pupil the best. When the values are highier than 5 there are too many classes for classification and output image gets more eroded and pupil less visible . 
     #Moreover if we keep value at 4 we can even detect Iris but its not properly classified on every frame.
     #
     K = 4 #used wen running only detectPupilKmeans
     
     #
-    #Assignment 1 part 2. (5)
+    #Assignment 1 part 2 || 1 (5)
     #The values that give the best values are K=4 and distanceWeight=2 (making it higher for low amount of clusters makes almost no difference).  
     #This values doesn't apply that well in other sequences but they are still batter than in binary thresholding.
     # 
@@ -379,13 +379,13 @@ def update(I):
     #detectPupilKMeans(gray, K, distanceWeight, reSize) 
     
     #
-    #Assignment 1 part 2. (8)
+    #Assignment 1 part 2 || 1 (8)
     #The advantage of using clustering before BLOB detection is that we can find pixel intensity of the object that we are looking for and therefore automatically set threshold.  
     #This isn't however an ultimate method. Using clustering still requires setting number of cluster and distance weight between pixels. The more diverse lighting conditions the more clusters you have to use. 
     #
     
     #
-    #Assignment 1 part 2. (10)
+    #Assignment 1 part 2 || 1 (10)
     #Not in this example. In some very rare condiitons (not with eye tracking) you could definately do that because when you use Kmeans you get center points of clusters whoch you could use. 
     #If every object had different pixel intensity then yes, you could use Kmeans for detecting some objects. 
     #
@@ -422,8 +422,12 @@ def update(I):
         #Getting circle points around iris for every pupil.
         P = circleTest(20, C, 70)
         for circlePoint in P:
-            #print circlePoint[1]
-            cv2.circle(img, (int(circlePoint[0]), int(circlePoint[1])), 1, (0,0,255), 4)
+            circlePointCoor = (int(circlePoint[0]), int(circlePoint[1]))
+            cv2.circle(img, circlePointCoor, 1, (255,243,17), 4)#Drawing points around pupil centroid
+            #Assignment 1 part 2|| 2.2 (6)
+            #Drawing lines through points (not sure if it is correct)
+            gradientPoint = (int(circlePoint[0]+circlePoint[2]*20), int(circlePoint[1]+circlePoint[3]*20))
+            cv2.line(img,circlePointCoor, gradientPoint,(13,243,17), 1)
         
     for glint in glints:
         C = int(glint[0][0]),int(glint[0][1])
