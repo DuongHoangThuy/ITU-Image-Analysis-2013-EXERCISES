@@ -426,8 +426,8 @@ def update(I):
             cv2.circle(img, circlePointCoor, 1, (255,243,17), 4)#Drawing points around pupil centroid
             #Assignment 1 part 2|| 2.2 (6)
             #Drawing lines through points (not sure if it is correct)
-            gradientPoint = (int(circlePoint[0]+circlePoint[2]*20), int(circlePoint[1]+circlePoint[3]*20))
-            cv2.line(img,circlePointCoor, gradientPoint,(13,243,17), 1)
+            gradientPoint = (int(circlePoint[0]+circlePoint[2]*20), int(circlePoint[1]+circlePoint[3]*20)) #Generating gradient points to connect the lines
+            cv2.line(img,circlePointCoor, gradientPoint,(13,243,17), 1)#Drawing lines form circlePoints though gradient points.
         
     for glint in glints:
         C = int(glint[0][0]),int(glint[0][1])
