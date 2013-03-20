@@ -124,13 +124,13 @@ reSize : the size of the image to do k-means on
             cv2.circle(tempResultImg,centroid, 2, (0,0,255),4)
             pupilEllipses.append(cv2.fitEllipse(cnt))
     cv2.imshow("TempResults",tempResultImg)
-    return pupilEllipses 
+    #return pupilEllipses 
     
  #--------------------------------------This snippet belongs to function detectPupilKmeans if there were any doubts-------   
     #use the found clusters to map
-    #label,distance = vq(features,centroids)
+    label,distance = vq(features,centroids)
     # re-create image from
-    #labelIm = np.array(np.reshape(label,(M,N)))
+    labelIm = np.array(np.reshape(label,(M,N)))
     
     '''This snippet is my try of applying BLOB detection on labelIm (ex 1.7) . I give up and I see no sense in doing that to be honest. Maybe I don't unerstand that.'''
     #Very ugly way of extracting pupil cluster on labelIm. It can be done in two lines I'm sure. I have no Idea why they made us do blob detection on labelIm anyway. I can have perfectly fine result on gray image using data I laready have
@@ -148,10 +148,10 @@ reSize : the size of the image to do k-means on
     #Here I get binary image showing only cluster containing pixels which intensity equals pupil intensity. Here we should continue with blob detection...     
     ''' end snippet'''
     
-    #f = figure(1)
-    #imshow(labelIm) #labelIm
-    #f.canvas.draw()
-    #f.show()
+    f = figure(1)
+    imshow(labelIm) #labelIm
+    f.canvas.draw()
+    f.show()
  #-------------------------------------------------------------------------------------------   
          
 
@@ -169,7 +169,7 @@ def getPupilThershold(gray, K, distanceWeight):
     #make a feature vectors containing (x,y,intensity)
     features = np.zeros((O,3))
     features[:,0] = z;
-    features[:,1] = y/distanceWeight; #Divide so that the distance of position weighs lessthan intensity
+    features[:,1] = y/distanceWeight; #Divide so that the distance of position weighs less than intensity
     features[:,2] = x/distanceWeight;
     features = np.array(features,'f')
     # cluster data
@@ -338,12 +338,12 @@ def update(I):
     sliderVals = getSliderVals()
     gray = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
     # Do the magic
-    pupils = GetPupil(gray, sliderVals["pupilThr"]) #Get pupil manual threshold
+    pupils = []#GetPupil(gray, sliderVals["pupilThr"]) #Get pupil manual threshold
     #pupils = GetPupil(gray,getPupilThershold(gray, K=4, distanceWeight=2)) #Automatic thresholding using Kmeans. Could be quite precise when using Atanas'es pupil filtering.
-    glints = []# GetGlints(gray,sliderVals['glintThr'])
-    irises = GetIrisUsingThreshold(gray, sliderVals['glintThr'])
+    glints = []#GetGlints(gray,sliderVals['glintThr'])
+    #irises = GetIrisUsingThreshold(gray, sliderVals['glintThr'])
     
-    FilterPupilGlint(pupils, glints)
+    #FilterPupilGlint(pupils, glints)
     
     #Assignment 1 part 2|| 2.2 (1)
     #
@@ -358,7 +358,7 @@ def update(I):
     #Changing the distanceWeight doesnt seem to have any influence on pupil detection. Am I doing something wrong? 
     #I guess its becuase we have too few clusters.
     # 
-    distanceWeight = 2   #used wen running only detectPupilKmeans                   
+    distanceWeight = 2   #used wen running only detectPupilKmeans //good value 2                  
     
     
     #
@@ -366,7 +366,7 @@ def update(I):
     #Values K = 4 and 5 separates pupil the best. When the values are highier than 5 there are too many classes for classification and output image gets more eroded and pupil less visible . 
     #Moreover if we keep value at 4 we can even detect Iris but its not properly classified on every frame.
     #
-    K = 4 #used wen running only detectPupilKmeans
+    K = 4 #used wen running only detectPupilKmeans //good value 4
     
     #
     #Assignment 1 part 2 || 1 (5)
@@ -376,7 +376,7 @@ def update(I):
   
     reSize = (40,40) #used wen running only detectPupilKmeans
     
-    #detectPupilKMeans(gray, K, distanceWeight, reSize) 
+    detectPupilKMeans(gray, K, distanceWeight, reSize) 
     
     #
     #Assignment 1 part 2 || 1 (8)
@@ -420,14 +420,15 @@ def update(I):
         
         #Assignment 1 part 2|| 2.2 (5)
         #Getting circle points around iris for every pupil.
-        P = circleTest(20, C, 70)
-        for circlePoint in P:
-            circlePointCoor = (int(circlePoint[0]), int(circlePoint[1]))
-            cv2.circle(img, circlePointCoor, 1, (255,243,17), 4)#Drawing points around pupil centroid
-            #Assignment 1 part 2|| 2.2 (6)
-            #Drawing lines through points (not sure if it is correct)
-            gradientPoint = (int(circlePoint[0]+circlePoint[2]*20), int(circlePoint[1]+circlePoint[3]*20)) #Generating gradient points to connect the lines. Multiplied by 20 to make them longer.
-            cv2.line(img,circlePointCoor, gradientPoint,(13,243,17), 1)#Drawing lines form circlePoints though gradient points.
+        
+        #P = circleTest(20, C, 70)
+        #for circlePoint in P:
+        #    circlePointCoor = (int(circlePoint[0]), int(circlePoint[1]))
+        #    cv2.circle(img, circlePointCoor, 1, (255,243,17), 4)#Drawing points around pupil centroid
+        #    #Assignment 1 part 2|| 2.2 (6)
+        #    #Drawing lines through points (not sure if it is correct)
+        #    gradientPoint = (int(circlePoint[0]+circlePoint[2]*20), int(circlePoint[1]+circlePoint[3]*20)) #Generating gradient points to connect the lines. Multiplied by 20 to make them longer.
+        #    cv2.line(img,circlePointCoor, gradientPoint,(13,243,17), 1)#Drawing lines form circlePoints though gradient points.
         
     for glint in glints:
         C = int(glint[0][0]),int(glint[0][1])
