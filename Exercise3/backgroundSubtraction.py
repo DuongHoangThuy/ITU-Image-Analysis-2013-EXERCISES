@@ -40,8 +40,12 @@ while(f):
         #img = cv2.absdiff(img, backGround)
         (thresh, thr) = cv2.threshold(img, 40, 255, cv2.THRESH_BINARY) #Applying threshold
         
+        
+        
         msk = 255 - thr
     
+        print msk 
+        
         msk = cv2.cvtColor(msk, cv2.COLOR_GRAY2RGB)
         thr = cv2.cvtColor(thr, cv2.COLOR_GRAY2RGB)
         
@@ -50,7 +54,7 @@ while(f):
         
         Imixed = cv2.bitwise_or(I1,I2)
         
-        cv2.imshow("input", Imixed)
+        cv2.imshow("input", msk)
         ch = cv2.waitKey(1)
         
         if ch == 32:#  Break by SPACE key
